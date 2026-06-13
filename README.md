@@ -16,6 +16,16 @@ to the assumption that produced it.
 
 ---
 
+## Screenshot
+
+![Trader Terminal — live dashboard](docs/screenshot-dashboard.png)
+
+> The live terminal: candlestick chart with the Kronos forecast path, the transparent
+> score row, the regime read (bias / environment / confidence), the Kronos-Guided Kalman
+> Filter, the Respect Score breakdown, and live alerts.
+
+---
+
 ## What it does
 
 Most market tools hand you a number with no way to know if you should trust it. I built
