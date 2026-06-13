@@ -1,13 +1,11 @@
 # Trader Terminal
 
-A market decision-support dashboard I built with AI. **I'm a markets person, not a software
-engineer** — I understand trading, and I used Claude Code to build the software around that
-understanding. The result is a tool that takes an AI price forecast and stress-tests it against
-the forces that actually push markets around.
+A market decision-support dashboard that takes an AI price forecast and evaluates it against the
+forces that move markets. It was built with Claude Code from a trader's perspective rather than a
+software engineer's: the design follows trading logic, and AI was used to implement it.
 
-> Built as a personal research project using Claude Code. It's **decision support, not a trading
-> bot** — there's no broker connection and no order execution. I described what I wanted as a
-> trader, the AI wrote the code, and I iterated until it did what I needed.
+> A personal research project. It is **decision support, not a trading bot** — there is no broker
+> connection and no order execution.
 
 ---
 
@@ -20,51 +18,41 @@ the forces that actually push markets around.
 
 ---
 
-## The idea (a trader's logic)
+## Concept
 
-Most tools hand you a forecast and stop there. The question I actually care about as a trader is
-different: *is the market respecting this forecast, rejecting it, or distorting it because of
-something external?*
+Most tools present a forecast and stop there. This terminal addresses a more useful question for a
+discretionary trader: *is the market respecting the forecast, rejecting it, or distorting it because
+of an external force?*
 
-So the terminal treats the AI forecast as the "intended path" of price and scores how today's
-action lines up against it — alongside the things that bend price away from any forecast:
-
-- **Kronos AI forecast** — hourly and daily forward paths with confidence bands, from the
-  open-source [Kronos](https://github.com/shiyu-coder/Kronos) model. Wide band = noise; tight band =
-  something worth watching.
-- **Dealer gamma (GEX)** — where dealer hedging tends to pin price or accelerate it, and the
-  zero-gamma flip where the regime changes.
-- **Institutional positioning (COT)** — how the big players are leaning, from weekly CFTC data.
-- **News risk** — a quick read on headline/event risk.
-
-Everything rolls into one **regime read**: directional bias, the market environment, a confidence
-score, and the price levels that would invalidate the idea.
+The AI forecast is treated as the "intended path" of price. The terminal scores how current price
+action aligns with that path, while accounting for the factors that bend price away from any
+forecast.
 
 ---
 
-## What each input is for
+## Inputs
 
-I kept the roles strict so I wouldn't fool myself — each signal answers one question and nothing else:
-
-| Input | What it's for |
+| Signal | Role |
 |---|---|
-| Kronos forecast | The directional "intended path" + a same-day target |
-| Dealer gamma | The market *environment* — calm/pinned vs. fast/trending |
-| COT positioning | Who's crowded, and where the squeeze risk is |
-| News risk | Whether an external shock is more likely than usual |
-| Regime read | Ties it together: bias, environment, confidence, invalidation |
+| **Kronos AI forecast** | Hourly and daily forward paths with confidence bands, from the open-source [Kronos](https://github.com/shiyu-coder/Kronos) model. A wide band indicates noise; a tight band indicates a setup worth attention. |
+| **Dealer gamma (GEX)** | Identifies where dealer hedging tends to pin or accelerate price, including the zero-gamma flip where the regime changes. |
+| **Institutional positioning (COT)** | Weekly CFTC data showing how large participants are positioned and where squeeze risk sits. |
+| **News risk** | A read on elevated headline and event risk. |
+
+Each input answers one question and nothing else, so the signals stay distinct. They combine into a
+single **regime read**: directional bias, market environment, a confidence score, and the price
+levels that would invalidate the thesis.
 
 ---
 
 ## How it was built
 
-I'm not a programmer by training, so I leaned on Claude Code the whole way: I'd explain the trading
-logic I wanted, it would write the software, and I'd test it against real market behavior and ask
-for changes until it was right. It's a Python app with a web dashboard, and it runs on free market
-data out of the box (no paid keys required).
+The trading logic is mine; the implementation was written with Claude Code and refined through
+testing against real market behavior. It is a Python application with a web dashboard and runs on
+free market data by default (no paid API keys required).
 
-If you want the full breakdown of every input and exactly how each score is calculated, it's written
-up in **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)**.
+A full breakdown of every input and how each score is calculated is documented in
+**[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)**.
 
 ---
 
@@ -75,7 +63,7 @@ up in **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)**.
 cd backend
 python -m venv .venv && source .venv/bin/activate   # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
-cp ../.env.example .env          # works with no keys: defaults to SQLite + free data
+cp ../.env.example .env          # runs with no keys: defaults to SQLite + free data sources
 uvicorn app.main:app --reload
 
 # frontend (the dashboard)
@@ -86,9 +74,9 @@ pnpm dev
 
 ---
 
-## Honest scope
+## Scope and limitations
 
-This is a personal research and decision-support tool. It doesn't place trades, it isn't financial
-advice, and some of the market values shown (like MES-scale gamma) are clearly-labeled approximate
-conversions. The point wasn't to build a money printer — it was to see, as a trader, whether an AI
-forecast actually holds up once you account for everything pulling price around.
+This is a research and decision-support tool. It does not place trades and is not financial advice.
+Some displayed values (such as MES-scale gamma) are approximate conversions and are labeled as such.
+The objective was to test, from a trader's standpoint, whether an AI forecast holds up once dealer
+positioning, institutional flow, and news risk are taken into account.
