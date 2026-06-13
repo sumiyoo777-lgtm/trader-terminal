@@ -1,18 +1,13 @@
 # Trader Terminal
 
-**A full-stack market decision-support terminal I designed and built end-to-end** —
-a FastAPI + Next.js system that fuses six independent market signals into a single,
-transparent, *auditable* read on the market. Every number it shows can be traced back
-to the assumption that produced it.
+A market decision-support dashboard I built with AI. **I'm a markets person, not a software
+engineer** — I understand trading, and I used Claude Code to build the software around that
+understanding. The result is a tool that takes an AI price forecast and stress-tests it against
+the forces that actually push markets around.
 
-> Built solo as a research project. ~6,000+ lines across a Python backend and a
-> TypeScript/React frontend. It is **decision support, not a trading bot** — there is
-> no broker connection and no order execution, by design.
-
-<!-- EDITABLE: Add one honest sentence about WHY you built this. Reviewers remember
-     motivation. e.g. "I wanted to find out whether an AI forecast actually adds edge
-     once you account for everything pulling price around it — so I built the instrument
-     to measure it." Rewrite in your own voice. -->
+> Built as a personal research project using Claude Code. It's **decision support, not a trading
+> bot** — there's no broker connection and no order execution. I described what I wanted as a
+> trader, the AI wrote the code, and I iterated until it did what I needed.
 
 ---
 
@@ -20,68 +15,56 @@ to the assumption that produced it.
 
 ![Trader Terminal — live dashboard](docs/screenshot-dashboard.png)
 
-> The live terminal: candlestick chart with the Kronos forecast path, the transparent
-> score row, the regime read (bias / environment / confidence), the Kronos-Guided Kalman
-> Filter, the Respect Score breakdown, and live alerts.
+> The live terminal: the candlestick chart with the Kronos forecast path, the score row, the regime
+> read, and live alerts.
 
 ---
 
-## What it does
+## The idea (a trader's logic)
 
-Most market tools hand you a number with no way to know if you should trust it. I built
-this to do the opposite: take a forecast and *interrogate* it against everything that
-moves real markets, then show its work.
+Most tools hand you a forecast and stop there. The question I actually care about as a trader is
+different: *is the market respecting this forecast, rejecting it, or distorting it because of
+something external?*
 
-It combines:
+So the terminal treats the AI forecast as the "intended path" of price and scores how today's
+action lines up against it — alongside the things that bend price away from any forecast:
 
-- **AI price forecasts** — orchestrates the open-source [Kronos](https://github.com/shiyu-coder/Kronos)
-  time-series foundation model to produce hourly and daily forward paths with confidence bands.
-- **Dealer gamma exposure (GEX)** — and when the paid data feed is rate-limited, it
-  **computes gamma itself** from a live option chain via Black–Scholes, including the true
-  zero-gamma flip point.
-- **Institutional positioning** — pulls CFTC Commitment-of-Traders data and scores it
-  (net position, percentiles, crowding).
-- **News risk** — a lexicon-based scoring of live headlines.
-- **A Kronos-Guided Kalman Filter** — my own estimator that blends the AI's "intended
-  path" with live price.
-- **A unified regime engine** — turns all of the above into a single state: bias,
-  environment, confidence, playbook, and invalidation levels.
+- **Kronos AI forecast** — hourly and daily forward paths with confidence bands, from the
+  open-source [Kronos](https://github.com/shiyu-coder/Kronos) model. Wide band = noise; tight band =
+  something worth watching.
+- **Dealer gamma (GEX)** — where dealer hedging tends to pin price or accelerate it, and the
+  zero-gamma flip where the regime changes.
+- **Institutional positioning (COT)** — how the big players are leaning, from weekly CFTC data.
+- **News risk** — a quick read on headline/event risk.
 
-The core question it was built to answer: *is the market today respecting the forecast,
-rejecting it, or distorting it because of gamma, news, or positioning?*
+Everything rolls into one **regime read**: directional bias, the market environment, a confidence
+score, and the price levels that would invalidate the idea.
 
 ---
 
-## What this project demonstrates
+## What each input is for
 
-*(For anyone reviewing this as a sample of my work.)*
+I kept the roles strict so I wouldn't fool myself — each signal answers one question and nothing else:
 
-- **Full-stack delivery** — FastAPI + SQLAlchemy + APScheduler backend, Next.js 16 +
-  React + TypeScript frontend, all the way to a live dashboard.
-- **Clean architecture** — a pure, fully-testable math "engine" layer (Kalman, scoring,
-  regime logic) with **zero I/O**, kept strictly separate from the adapters/services that
-  talk to the outside world.
-- **Engineering for the real world** — graceful fallbacks (self-computed gamma when the
-  paid feed is quota'd), `.env`-driven config with secrets kept out of source, and a
-  pytest suite.
-- **Intellectual honesty in the design** — it refuses to pretend. Wide confidence band =
-  noise. Approximate proxy values are labeled as approximate *everywhere*. No fake
-  buy/sell signals.
-
-For the deep technical breakdown — every table, adapter, and scoring formula — see
-**[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)**.
-
----
-
-## Tech stack
-
-| Layer | Tools |
+| Input | What it's for |
 |---|---|
-| Backend | Python · FastAPI · SQLAlchemy · APScheduler · pydantic-settings · pytest |
-| Frontend | Next.js 16 · React · TypeScript |
-| Data/Quant | yfinance · CFTC (Socrata) · Black–Scholes option-chain gamma · volume profile |
-| AI | open-source Kronos foundation model (forecasting) |
-| Storage | SQLite (default) / PostgreSQL |
+| Kronos forecast | The directional "intended path" + a same-day target |
+| Dealer gamma | The market *environment* — calm/pinned vs. fast/trending |
+| COT positioning | Who's crowded, and where the squeeze risk is |
+| News risk | Whether an external shock is more likely than usual |
+| Regime read | Ties it together: bias, environment, confidence, invalidation |
+
+---
+
+## How it was built
+
+I'm not a programmer by training, so I leaned on Claude Code the whole way: I'd explain the trading
+logic I wanted, it would write the software, and I'd test it against real market behavior and ask
+for changes until it was right. It's a Python app with a web dashboard, and it runs on free market
+data out of the box (no paid keys required).
+
+If you want the full breakdown of every input and exactly how each score is calculated, it's written
+up in **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)**.
 
 ---
 
@@ -92,26 +75,20 @@ For the deep technical breakdown — every table, adapter, and scoring formula �
 cd backend
 python -m venv .venv && source .venv/bin/activate   # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
-cp ../.env.example .env          # fill in optional keys; SQLite + yfinance work with none
+cp ../.env.example .env          # works with no keys: defaults to SQLite + free data
 uvicorn app.main:app --reload
 
-# frontend
+# frontend (the dashboard)
 cd frontend
 pnpm install
 pnpm dev
 ```
 
-No API keys are required to run it — it defaults to free data sources (SQLite + yfinance).
-Optional keys (dealer GEX feed, NewsAPI) unlock the paid data paths.
-
-<!-- EDITABLE: If you add screenshots, drop them in docs/ and link here. A single image of
-     the live dashboard makes this README 10x more convincing. Highly recommended. -->
-
 ---
 
 ## Honest scope
 
-This is a personal research and decision-support tool. It does not place trades, is not
-financial advice, and several market values shown (e.g. MES-scale GEX) are clearly-labeled
-proxy conversions. The point was never to ship a money printer — it was to build a rigorous
-instrument for understanding whether an AI forecast survives contact with a real market.
+This is a personal research and decision-support tool. It doesn't place trades, it isn't financial
+advice, and some of the market values shown (like MES-scale gamma) are clearly-labeled approximate
+conversions. The point wasn't to build a money printer — it was to see, as a trader, whether an AI
+forecast actually holds up once you account for everything pulling price around.
