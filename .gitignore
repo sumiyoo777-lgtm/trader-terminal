@@ -1,0 +1,37 @@
+# python
+backend/.venv/
+.venv/
+venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# secrets & local data (NEVER commit)
+backend/.env
+**/.env
+*.db
+*.sqlite
+*.out
+*.log
+
+# node / next
+frontend/node_modules/
+node_modules/
+frontend/.next/
+.next/
+frontend/next-env.d.ts
+out/
+dist/
+build/
+
+# os / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+
+# generated
+graphify-out/
